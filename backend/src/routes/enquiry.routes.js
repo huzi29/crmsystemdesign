@@ -6,7 +6,7 @@ const enquiry = express.Router();
 
 enquiry.post("/add",middleware.VerifyUser, Controllers.EnquiryController.createEnquiry);
 enquiry.get("/getall", middleware.VerifyUser,Controllers.EnquiryController.getAllEnquiries);
-enquiry.get("/getbyis/:id",middleware.VerifyUser, Controllers.EnquiryController.getEnquiryById)
+enquiry.get("/getbyid/:id",middleware.VerifyUser, Controllers.EnquiryController.getEnquiryById)
 enquiry.put("/update/:id",middleware.VerifyUser, Controllers.EnquiryController.updateEnquiry);
 enquiry.delete("/delete/:id", middleware.VerifyUser,Controllers.EnquiryController.deleteEnquiry);
 
