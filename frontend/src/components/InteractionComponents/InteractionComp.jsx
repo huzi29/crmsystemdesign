@@ -1,0 +1,226 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Label } from "@/components/ui/label";
+
+const interactionSchema = z.object({
+  leadId: z.string().min(1, "Lead is required"),
+  notes: z.string().min(5, "Notes must be at least 5 characters"),
+  interactionType: z.enum(["Call", "Meeting", "Email", "Site Visit"]),
+  handledBy: z.string().min(1, "Handler is required"),
+});
+
+const InteractionForm = () => {
+  const [loading, setLoading] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+  const [leads, setLeads] = useState([]);
+  const [users, setUsers] = useState([]); 
+
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    formState: { errors },
+    reset,
+  } = useForm({
+    resolver: zodResolver(interactionSchema),
+  });
+
+  useEffect(() => {
+    const token = localStorage.getItem("x-access-token");
+
+    if (!token) {
+      setErrorMessage("Unauthorized: No token found.");
+      setLoading(false);
+      return;
+    }
+
+    const fetchLeads = async () => {
+      try {
+        const response = await fetch(
+          "http://localhost:5050/api/v1/leads/getall",
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              "x-access-token": token,
+            },
+          }
+        );
+
+        if (!response.ok) throw new Error("Failed to fetch leads");
+
+        const data = await response.json();
+        setLeads(data);
+      } catch (err) {
+        setErrorMessage(err.message);
+      }
+    };
+
+    const fetchUsers = async () => {
+      try {
+        const response = await fetch(
+          "http://localhost:5050/api/v1/auth/users",
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              "x-access-token": token,
+            },
+          }
+        );
+
+        if (!response.ok) throw new Error("Failed to fetch users");
+
+        const data = await response.json();
+        setUsers(data.data);
+      } catch (err) {
+        setErrorMessage(err.message);
+      }
+    };
+
+    fetchLeads();
+    fetchUsers();
+  }, []);
+
+  const onSubmit = async (data) => {
+    setLoading(true);
+    setErrorMessage("");
+    setSuccessMessage("");
+
+    try {
+      const response = await fetch(
+        "http://localhost:5050/api/v1/interaction/add",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-access-token": localStorage.getItem("x-access-token"),
+          },
+          body: JSON.stringify(data),
+        }
+      );
+
+      if (!response.ok) throw new Error("Failed to add interaction");
+
+      setSuccessMessage("Interaction added successfully!");
+      reset();
+    } catch (err) {
+      setErrorMessage(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="flex items-center justify-center bg-gray-100 p-6 space-y-4">
+      <div className="w-full bg-white shadow-lg rounded-lg p-4">
+        <h1 className="text-2xl font-bold text-gray-800">Add Interaction</h1>
+
+        {errorMessage && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{errorMessage}</AlertDescription>
+          </Alert>
+        )}
+        {successMessage && (
+          <Alert variant="success" className="mb-4">
+            <AlertTitle>Success</AlertTitle>
+            <AlertDescription>{successMessage}</AlertDescription>
+          </Alert>
+        )}
+
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          <div>
+            <Label>Lead</Label>
+            <Select onValueChange={(value) => setValue("leadId", value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a Lead" />
+              </SelectTrigger>
+              <SelectContent>
+                {leads.map((lead) => (
+                  <SelectItem key={lead._id} value={lead._id}>
+                    {lead.name} ({lead.email})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {errors.leadId && (
+              <p className="text-red-500 text-sm">{errors.leadId.message}</p>
+            )}
+          </div>
+
+          <div>
+            <Label>Notes</Label>
+            <Input
+              type="text"
+              {...register("notes")}
+              placeholder="Enter interaction notes"
+            />
+            {errors.notes && (
+              <p className="text-red-500 text-sm">{errors.notes.message}</p>
+            )}
+          </div>
+
+          <div className="flex col-span-2 gap-3">
+            <Label>Interaction Type</Label>
+            <Select
+              onValueChange={(value) => setValue("interactionType", value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select interaction type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Call">Call</SelectItem>
+                <SelectItem value="Meeting">Meeting</SelectItem>
+                <SelectItem value="Email">Email</SelectItem>
+                <SelectItem value="Site Visit">Site Visit</SelectItem>
+              </SelectContent>
+            </Select>
+            {errors.interactionType && (
+              <p className="text-red-500 text-sm">
+                {errors.interactionType.message}
+              </p>
+            )}
+
+            <Label>Handled By (User)</Label>
+            <Select onValueChange={(value) => setValue("handledBy", value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a user" />
+              </SelectTrigger>
+              <SelectContent>
+                {users.map((user) => (
+                  <SelectItem key={user._id} value={user._id}>
+                    {user.name} ({user.email})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {errors.handledBy && (
+              <p className="text-red-500 text-sm">{errors.handledBy.message}</p>
+            )}
+          </div>
+          <Button type="submit" disabled={loading} className="w-full">
+            {loading ? "Adding..." : "Add Interaction"}
+          </Button>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+export default InteractionForm;
