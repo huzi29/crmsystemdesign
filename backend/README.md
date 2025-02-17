@@ -38,7 +38,7 @@ CORS Handling: CORS Middleware
 
 Clone the repository:
 
-git clone https://github.com/your-repo/backend-crm.git 
+git clone https://github.com/huzi29/crmsystemdesign.git 
 
 cd backend
 

@@ -40,7 +40,7 @@ Component Library: ShadCN UI
 
 Clone the repository:
 
-git clone https://github.com/your-repo/frontend-crm.git
+git clone https://github.com/huzi29/crmsystemdesign.git
 
 cd frontend
 
